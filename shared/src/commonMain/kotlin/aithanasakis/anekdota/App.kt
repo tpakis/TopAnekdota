@@ -48,6 +48,8 @@ import org.jetbrains.compose.resources.painterResource
 import topanekdota.shared.generated.resources.Res
 import topanekdota.shared.generated.resources.bac
 import topanekdota.shared.generated.resources.logo
+import topanekdota.shared.generated.resources.ad1
+import topanekdota.shared.generated.resources.ad2
 import topanekdota.shared.generated.resources.grass
 import topanekdota.shared.generated.resources.fav
 import topanekdota.shared.generated.resources.face
@@ -594,14 +596,27 @@ fun HomeScreen(
     val pagerState = rememberPagerState(initialPage = 0, pageCount = { categories.size })
     val scope = rememberCoroutineScope()
 
+    val facts = remember {
+        listOf(
+            "Οι νυχτερίδες όταν βγαίνουν από μια σπηλιά πάνε πάντα αριστερά.",
+            "Η καρδιά της γαλάζιας φάλαινας είναι τόσο μεγάλη όσο ένα αυτοκίνητο.",
+            "Το σαγόνι της γάτας δεν μπορεί να κινηθεί δεξιά και αριστερά.",
+            "Τα κοράκια μπορούν να αναγνωρίσουν και να θυμηθούν ανθρώπινα πρόσωπα.",
+            "Οι πεταλούδες γεύονται με τα πόδια τους.",
+            "Η μέλισσα πρέπει να επισκεφθεί 2 εκατομμύρια λουλούδια για να φτιάξει μισό κιλό μέλι.",
+            "Το νύχι του αντίχειρα μεγαλώνει πιο αργά από όλα τα άλλα νύχια.",
+            "Η γλώσσα του χαμαιλέοντα έχει διπλάσιο μήκος από το σώμα του.",
+            "Οι στρουθοκάμηλοι μπορούν να τρέξουν γρηγορότερα από τα άλογα.",
+            "Η Σαχάρα μεγαλώνει κατά περίπου 1 χιλιόμετρο κάθε μήνα."
+        )
+    }
+    var showFactDialog by remember { mutableStateOf(false) }
+    var currentFact by remember { mutableStateOf("") }
+
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(
-                Brush.verticalGradient(
-                    listOf(Color(0xFFE0F7FA), Color(0xFF80DEEA))
-                )
-            )
+            .background(Color(0xFF0F60A8))
     ) {
         Column(
             modifier = Modifier.fillMaxSize(),
@@ -611,31 +626,31 @@ fun HomeScreen(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(140.dp)
-                    .background(Color(0xFF006064).copy(alpha = 0.1f)),
+                    .height(110.dp)
+                    .background(Color(0xFF0F60A8)),
                 contentAlignment = Alignment.Center
             ) {
+                Image(
+                    painter = painterResource(Res.drawable.logo),
+                    contentDescription = "App Logo",
+                    modifier = Modifier.height(80.dp).width(200.dp),
+                    contentScale = ContentScale.Fit
+                )
                 Row(
-                    modifier = Modifier.fillMaxWidth().padding(horizontal = 16.dp),
-                    horizontalArrangement = Arrangement.SpaceBetween,
+                    modifier = Modifier
+                        .align(Alignment.CenterEnd)
+                        .padding(end = 16.dp),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
                     verticalAlignment = Alignment.CenterVertically
                 ) {
-                    Image(
-                        painter = painterResource(Res.drawable.logo),
-                        contentDescription = "App Logo",
-                        modifier = Modifier.height(100.dp).width(160.dp),
-                        contentScale = ContentScale.Fit
-                    )
-                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                        IconButton(onClick = onShowHelp) {
-                            Icon(Icons.Default.Help, contentDescription = "Βοήθεια", tint = Color(0xFF006064))
-                        }
-                        IconButton(onClick = onShowUpdates) {
-                            Icon(Icons.Default.Email, contentDescription = "Ενημερώσεις", tint = Color(0xFF006064))
-                        }
-                        IconButton(onClick = onShowAbout) {
-                            Icon(Icons.Default.Info, contentDescription = "Σχετικά", tint = Color(0xFF006064))
-                        }
+                    IconButton(onClick = onShowHelp) {
+                        Icon(Icons.Default.Help, contentDescription = "Βοήθεια", tint = Color.White)
+                    }
+                    IconButton(onClick = onShowUpdates) {
+                        Icon(Icons.Default.Email, contentDescription = "Ενημερώσεις", tint = Color.White)
+                    }
+                    IconButton(onClick = onShowAbout) {
+                        Icon(Icons.Default.Info, contentDescription = "Σχετικά", tint = Color.White)
                     }
                 }
             }
@@ -649,6 +664,7 @@ fun HomeScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f)
+                    .background(Color(0xFF121212))
                     .pointerInput(Unit) {
                         awaitPointerEventScope {
                             while (true) {
@@ -793,39 +809,162 @@ fun HomeScreen(
                         }
                     }
                 }
-            }
 
-            // PAGER INDICATORS (DOTS)
-            Row(
-                modifier = Modifier
-                    .wrapContentHeight()
-                    .fillMaxWidth()
-                    .padding(bottom = 12.dp),
-                horizontalArrangement = Arrangement.Center
-            ) {
-                repeat(categories.size) { iteration ->
-                    val color = if (pagerState.currentPage == iteration) Color(0xFF006064) else Color(0xFF006064).copy(alpha = 0.2f)
-                    Box(
-                        modifier = Modifier
-                            .padding(4.dp)
-                            .clip(CircleShape)
-                            .background(color)
-                            .size(10.dp)
-                    )
+                // PAGER INDICATORS (DOTS) OVERLAYED AT TOP CENTER
+                Row(
+                    modifier = Modifier
+                        .align(Alignment.TopCenter)
+                        .padding(top = 12.dp),
+                    horizontalArrangement = Arrangement.Center
+                ) {
+                    repeat(categories.size) { iteration ->
+                        val color = if (pagerState.currentPage == iteration) Color.White else Color.White.copy(alpha = 0.4f)
+                        Box(
+                            modifier = Modifier
+                                .padding(4.dp)
+                                .clip(CircleShape)
+                                .background(color)
+                                .size(8.dp)
+                        )
+                    }
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
+            var showAd1 by remember { mutableStateOf(true) }
+            LaunchedEffect(Unit) {
+                while (true) {
+                    kotlinx.coroutines.delay(5000)
+                    showAd1 = !showAd1
+                }
+            }
 
-            // GRASS DECORATION AT THE BOTTOM
-            Image(
-                painter = painterResource(Res.drawable.grass),
-                contentDescription = "Bottom Decor Grass",
+            // BOTTOM BANNER BOX
+            Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(60.dp),
-                contentScale = ContentScale.FillBounds
-            )
+                    .height(150.dp)
+                    .background(Color(0xFF0F60A8)),
+                contentAlignment = Alignment.BottomCenter
+            ) {
+                // Wooden Sign
+                Image(
+                    painter = painterResource(if (showAd1) Res.drawable.ad1 else Res.drawable.ad2),
+                    contentDescription = "Το ήξερες ότι...",
+                    modifier = Modifier
+                        .padding(bottom = 12.dp) // Lift it slightly so grass covers the bottom of the posts
+                        .height(110.dp)
+                        .fillMaxWidth(0.8f)
+                        .clickable {
+                            currentFact = facts.random()
+                            showFactDialog = true
+                        },
+                    contentScale = ContentScale.Fit
+                )
+
+                // Grass decoration on top
+                Image(
+                    painter = painterResource(Res.drawable.grass),
+                    contentDescription = "Bottom Decor Grass",
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(50.dp),
+                    contentScale = ContentScale.FillBounds
+                )
+            }
+        }
+    }
+
+    if (showFactDialog) {
+        androidx.compose.ui.window.Dialog(
+            onDismissRequest = { showFactDialog = false }
+        ) {
+            Card(
+                colors = CardDefaults.cardColors(containerColor = Color.White),
+                shape = RoundedCornerShape(16.dp),
+                modifier = Modifier.fillMaxWidth().wrapContentHeight()
+            ) {
+                Column(
+                    modifier = Modifier.padding(24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally
+                ) {
+                    // Warning/Info Icon in a circle
+                    Box(
+                        modifier = Modifier
+                            .size(64.dp)
+                            .clip(CircleShape)
+                            .background(Color(0xFFFFF3E0)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = "!",
+                            style = TextStyle(
+                                fontSize = 36.sp,
+                                fontWeight = FontWeight.Light,
+                                color = Color(0xFFE57373)
+                            )
+                        )
+                    }
+                    
+                    Spacer(modifier = Modifier.height(16.dp))
+                    
+                    Text(
+                        text = "Το ήξερες ότι...",
+                        style = TextStyle(
+                            fontSize = 20.sp,
+                            fontWeight = FontWeight.Bold,
+                            color = Color.Black
+                        ),
+                        textAlign = TextAlign.Center
+                    )
+                    
+                    Spacer(modifier = Modifier.height(12.dp))
+                    
+                    Text(
+                        text = currentFact,
+                        style = TextStyle(
+                            fontSize = 14.sp,
+                            color = Color.DarkGray
+                        ),
+                        textAlign = TextAlign.Center
+                    )
+                    
+                    Spacer(modifier = Modifier.height(24.dp))
+                    
+                    // Buttons
+                    Row(
+                        modifier = Modifier.fillMaxWidth(),
+                        horizontalArrangement = Arrangement.spacedBy(12.dp)
+                    ) {
+                        // Close Button
+                        Button(
+                            onClick = { showFactDialog = false },
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFCCCCCC)), // Gray
+                            shape = RoundedCornerShape(8.dp),
+                            modifier = Modifier.weight(1f),
+                            contentPadding = PaddingValues(vertical = 12.dp)
+                        ) {
+                            Text("Κλείσιμο", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                        }
+                        
+                        // More Button
+                        Button(
+                            onClick = {
+                                var nextFact = facts.random()
+                                while (nextFact == currentFact) {
+                                    nextFact = facts.random()
+                                }
+                                currentFact = nextFact
+                            },
+                            colors = ButtonDefaults.buttonColors(containerColor = Color(0xFFE57373)), // Orange-red/brown
+                            shape = RoundedCornerShape(8.dp),
+                            modifier = Modifier.weight(1f),
+                            contentPadding = PaddingValues(vertical = 12.dp)
+                        ) {
+                            Text("Κι άλλο!", color = Color.White, fontSize = 14.sp, fontWeight = FontWeight.Bold)
+                        }
+                    }
+                }
+            }
         }
     }
 }
