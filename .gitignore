@@ -1,0 +1,38 @@
+# Gradle and Kotlin
+.gradle/
+build/
+**/build/
+.kotlin/
+kotlin-js-store/
+node_modules/
+*.iml
+
+# IDEs
+.idea/
+*.ipr
+*.iws
+local.properties
+captures/
+.externalNativeBuild/
+.cxx/
+
+# OS Specific
+.DS_Store
+Thumbs.db
+
+# iOS / Xcode
+*.xcworkspace
+!*.xcodeproj/project.xcworkspace
+*.xcodeproj/*
+!*.xcodeproj/project.pbxproj
+!*.xcodeproj/xcshareddata/
+!*.xcodeproj/project.xcworkspace/
+!*.xcworkspace/contents.xcworkspacedata
+**/xcshareddata/WorkspaceSettings.xcsettings
+DerivedData/
+
+# Log files
+*.log
+
+# Project specific resources
+/BetterSlidingPanels/
