@@ -194,10 +194,8 @@ fun App(context: Any? = null) {
     // Dialog state
     var showAboutDialog by remember { mutableStateOf(false) }
     var showHelpDialog by remember { mutableStateOf(false) }
-    var showUpdatesDialog by remember { mutableStateOf(false) }
     var showAddJokeDialog by remember { mutableStateOf(false) }
     var showSettingsDialog by remember { mutableStateOf(false) }
-    var updatesEmail by remember { mutableStateOf("") }
     
     // Dynamic Settings States
     var jokeFontSize by remember { mutableStateOf(settingsManager.fontSize) }
@@ -225,20 +223,20 @@ fun App(context: Any? = null) {
                             .fillMaxSize()
                             .background(
                                 Brush.verticalGradient(
-                                    listOf(Color(0xFFE0F7FA), Color(0xFF80DEEA))
+                                    listOf(Color(0xFFE3F2FD), Color(0xFF90CAF9))
                                 )
                             ),
                         contentAlignment = Alignment.Center
                     ) {
                         Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                            CircularProgressIndicator(color = Color(0xFF006064))
+                            CircularProgressIndicator(color = Color(0xFF0F60A8))
                             Spacer(modifier = Modifier.height(16.dp))
                             Text(
                                 "Φόρτωση Ανεκδότων...\nΠαρακαλώ περιμένετε!",
                                 style = TextStyle(
                                     fontSize = 18.sp,
                                     fontWeight = FontWeight.Bold,
-                                    color = Color(0xFF006064),
+                                    color = Color(0xFF0F60A8),
                                     textAlign = TextAlign.Center
                                 )
                             )
@@ -262,10 +260,7 @@ fun App(context: Any? = null) {
                                                 catInfo.key
                                             )
                                         )
-                                    },
-                                    onShowAbout = { showAboutDialog = true },
-                                    onShowHelp = { showHelpDialog = true },
-                                    onShowUpdates = { showUpdatesDialog = true }
+                                    }
                                 )
                             }
                             is Screen.CategoryList -> {
@@ -308,6 +303,8 @@ fun App(context: Any? = null) {
                                     bgColor = Color(jokeBgColor),
                                     onBack = { navigationStack.removeLast() },
                                     onShowSettings = { showSettingsDialog = true },
+                                    onShowAbout = { showAboutDialog = true },
+                                    onShowHelp = { showHelpDialog = true },
                                     onShowSnackbar = { msg ->
                                         scope.launch {
                                             snackbarHostState.showSnackbar(msg)
@@ -323,7 +320,7 @@ fun App(context: Any? = null) {
                 if (showAboutDialog) {
                     AlertDialog(
                         onDismissRequest = { showAboutDialog = false },
-                        icon = { Icon(Icons.Default.Info, contentDescription = null, tint = Color(0xFF00838F)) },
+                        icon = { Icon(Icons.Default.Info, contentDescription = null, tint = Color(0xFF0F60A8)) },
                         title = { Text("Σχετικά με την Εφαρμογή", fontWeight = FontWeight.Bold) },
                         text = {
                             Column {
@@ -339,7 +336,7 @@ fun App(context: Any? = null) {
                         },
                         confirmButton = {
                             TextButton(onClick = { showAboutDialog = false }) {
-                                Text("Κλείσιμο", color = Color(0xFF00838F))
+                                Text("Κλείσιμο", color = Color(0xFF0F60A8))
                             }
                         }
                     )
@@ -349,7 +346,7 @@ fun App(context: Any? = null) {
                 if (showHelpDialog) {
                     AlertDialog(
                         onDismissRequest = { showHelpDialog = false },
-                        icon = { Icon(Icons.Default.Help, contentDescription = null, tint = Color(0xFF00838F)) },
+                        icon = { Icon(Icons.Default.Help, contentDescription = null, tint = Color(0xFF0F60A8)) },
                         title = { Text("Βοήθεια / Οδηγίες", fontWeight = FontWeight.Bold) },
                         text = {
                             Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
@@ -362,60 +359,12 @@ fun App(context: Any? = null) {
                                 Text("2) Μπορείτε να προσθέσετε ένα δικό σας ανέκδοτο στην εφαρμογή (μπαίνει αυτόματα στα αγαπημένα):")
                                 Text("• Πηγαίνετε σε οποιαδήποτε κατηγορία, πατάτε το κουμπί '+' στην κορυφή και το γράφετε εκεί.")
                                 Spacer(modifier = Modifier.height(16.dp))
-                                Text("Καλή διασκέδαση!", fontWeight = FontWeight.Bold, color = Color(0xFF00838F))
+                                Text("Καλή διασκέδαση!", fontWeight = FontWeight.Bold, color = Color(0xFF0F60A8))
                             }
                         },
                         confirmButton = {
                             TextButton(onClick = { showHelpDialog = false }) {
-                                Text("Κατάλαβα", color = Color(0xFF00838F))
-                            }
-                        }
-                    )
-                }
-
-                // UPDATES/EMAIL SUBSCRIPTION DIALOG
-                if (showUpdatesDialog) {
-                    AlertDialog(
-                        onDismissRequest = { showUpdatesDialog = false },
-                        icon = { Icon(Icons.Default.Email, contentDescription = null, tint = Color(0xFF00838F)) },
-                        title = { Text("Εγγραφή στις Ενημερώσεις", fontWeight = FontWeight.Bold) },
-                        text = {
-                            Column {
-                                Text("Θέλετε να ενημερώνεστε με e-mail κάθε φορά που προστίθενται νέα ανέκδοτα;")
-                                Spacer(modifier = Modifier.height(16.dp))
-                                OutlinedTextField(
-                                    value = updatesEmail,
-                                    onValueChange = { updatesEmail = it },
-                                    label = { Text("E-mail Διεύθυνση") },
-                                    placeholder = { Text("example@gmail.com") },
-                                    singleLine = true,
-                                    modifier = Modifier.fillMaxWidth()
-                                )
-                            }
-                        },
-                        confirmButton = {
-                            Button(
-                                onClick = {
-                                    if (updatesEmail.contains("@") && updatesEmail.contains(".")) {
-                                        showUpdatesDialog = false
-                                        scope.launch {
-                                            snackbarHostState.showSnackbar("Εγγραφήκατε επιτυχώς στη λίστα ενημερώσεων!")
-                                        }
-                                        updatesEmail = ""
-                                    } else {
-                                        scope.launch {
-                                            snackbarHostState.showSnackbar("Παρακαλώ εισάγετε έγκυρο e-mail!")
-                                        }
-                                    }
-                                },
-                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00838F))
-                            ) {
-                                Text("Εγγραφή")
-                            }
-                        },
-                        dismissButton = {
-                            TextButton(onClick = { showUpdatesDialog = false }) {
-                                Text("Άκυρο", color = Color(0xFF757575))
+                                Text("Κατάλαβα", color = Color(0xFF0F60A8))
                             }
                         }
                     )
@@ -426,7 +375,7 @@ fun App(context: Any? = null) {
                     var customText by remember { mutableStateOf("") }
                     AlertDialog(
                         onDismissRequest = { showAddJokeDialog = false },
-                        icon = { Icon(Icons.Default.AddCircle, contentDescription = null, tint = Color(0xFF00838F)) },
+                        icon = { Icon(Icons.Default.AddCircle, contentDescription = null, tint = Color(0xFF0F60A8)) },
                         title = { Text("Προσθήκη Δικού σας Ανέκδοτου", fontWeight = FontWeight.Bold) },
                         text = {
                             Column {
@@ -460,7 +409,7 @@ fun App(context: Any? = null) {
                                         }
                                     }
                                 },
-                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00838F))
+                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0F60A8))
                             ) {
                                 Text("Προσθήκη")
                             }
@@ -477,7 +426,7 @@ fun App(context: Any? = null) {
                 if (showSettingsDialog) {
                     AlertDialog(
                         onDismissRequest = { showSettingsDialog = false },
-                        icon = { Icon(Icons.Default.Settings, contentDescription = null, tint = Color(0xFF00838F)) },
+                        icon = { Icon(Icons.Default.Settings, contentDescription = null, tint = Color(0xFF0F60A8)) },
                         title = { Text("Ρυθμίσεις Εμφάνισης", fontWeight = FontWeight.Bold) },
                         text = {
                             Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
@@ -487,8 +436,8 @@ fun App(context: Any? = null) {
                                     onValueChange = { jokeFontSize = it.toInt() },
                                     valueRange = 12f..32f,
                                     colors = SliderDefaults.colors(
-                                        thumbColor = Color(0xFF00838F),
-                                        activeTrackColor = Color(0xFF00838F)
+                                        thumbColor = Color(0xFF0F60A8),
+                                        activeTrackColor = Color(0xFF0F60A8)
                                     )
                                 )
                                 Spacer(modifier = Modifier.height(12.dp))
@@ -569,7 +518,7 @@ fun App(context: Any? = null) {
                                     settingsManager.backgroundColor = jokeBgColor
                                     showSettingsDialog = false
                                 },
-                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00838F))
+                                colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0F60A8))
                             ) {
                                 Text("Αποθήκευση")
                             }
@@ -588,10 +537,7 @@ fun App(context: Any? = null) {
 
 @Composable
 fun HomeScreen(
-    onSelectCategory: (CategoryInfo) -> Unit,
-    onShowAbout: () -> Unit,
-    onShowHelp: () -> Unit,
-    onShowUpdates: () -> Unit
+    onSelectCategory: (CategoryInfo) -> Unit
 ) {
     val pagerState = rememberPagerState(initialPage = 0, pageCount = { categories.size })
     val scope = rememberCoroutineScope()
@@ -631,28 +577,11 @@ fun HomeScreen(
                 contentAlignment = Alignment.Center
             ) {
                 Image(
-                    painter = painterResource(Res.drawable.logo),
+                    painter = painterResource(Res.drawable.bac),
                     contentDescription = "App Logo",
-                    modifier = Modifier.height(80.dp).width(200.dp),
+                    modifier = Modifier.height(80.dp),
                     contentScale = ContentScale.Fit
                 )
-                Row(
-                    modifier = Modifier
-                        .align(Alignment.CenterEnd)
-                        .padding(end = 16.dp),
-                    horizontalArrangement = Arrangement.spacedBy(4.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    IconButton(onClick = onShowHelp) {
-                        Icon(Icons.Default.Help, contentDescription = "Βοήθεια", tint = Color.White)
-                    }
-                    IconButton(onClick = onShowUpdates) {
-                        Icon(Icons.Default.Email, contentDescription = "Ενημερώσεις", tint = Color.White)
-                    }
-                    IconButton(onClick = onShowAbout) {
-                        Icon(Icons.Default.Info, contentDescription = "Σχετικά", tint = Color.White)
-                    }
-                }
             }
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -1009,14 +938,14 @@ fun CategoryListScreen(
     Box(
         modifier = Modifier
             .fillMaxSize()
-            .background(Color(0xFFE0F7FA))
+            .background(Color(0xFFE3F2FD))
     ) {
         Column(modifier = Modifier.fillMaxSize()) {
             // HEADER BAR
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(Color(0xFF00838F))
+                    .background(Color(0xFF0F60A8))
                     .padding(vertical = 8.dp, horizontal = 12.dp)
             ) {
                 Row(
@@ -1124,13 +1053,13 @@ fun CategoryListScreen(
                                     modifier = Modifier
                                         .size(32.dp)
                                         .clip(CircleShape)
-                                        .background(Color(0xFF00838F).copy(alpha = 0.15f)),
+                                        .background(Color(0xFF0F60A8).copy(alpha = 0.15f)),
                                     contentAlignment = Alignment.Center
                                 ) {
                                     Text(
                                         text = "$itemNumber",
                                         fontWeight = FontWeight.Bold,
-                                        color = Color(0xFF00838F),
+                                        color = Color(0xFF0F60A8),
                                         fontSize = 14.sp
                                     )
                                 }
@@ -1180,6 +1109,8 @@ fun DetailViewScreen(
     bgColor: Color,
     onBack: () -> Unit,
     onShowSettings: () -> Unit,
+    onShowAbout: () -> Unit,
+    onShowHelp: () -> Unit,
     onShowSnackbar: (String) -> Unit
 ) {
     var jokes = remember { mutableStateListOf<Joke>() }
@@ -1198,7 +1129,7 @@ fun DetailViewScreen(
                 .background(bgColor),
             contentAlignment = Alignment.Center
         ) {
-            CircularProgressIndicator(color = Color(0xFF00838F))
+            CircularProgressIndicator(color = Color(0xFF0F60A8))
         }
         return
     }
@@ -1217,7 +1148,7 @@ fun DetailViewScreen(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(Color(0xFF00838F))
+                    .background(Color(0xFF0F60A8))
                     .padding(vertical = 8.dp, horizontal = 12.dp)
             ) {
                 Row(
@@ -1239,8 +1170,16 @@ fun DetailViewScreen(
                             )
                         )
                     }
-                    IconButton(onClick = onShowSettings) {
-                        Icon(Icons.Default.Settings, contentDescription = "Ρυθμίσεις", tint = Color.White)
+                    Row(horizontalArrangement = Arrangement.spacedBy(4.dp)) {
+                        IconButton(onClick = onShowHelp) {
+                            Icon(Icons.Default.Help, contentDescription = "Βοήθεια", tint = Color.White)
+                        }
+                        IconButton(onClick = onShowAbout) {
+                            Icon(Icons.Default.Info, contentDescription = "Σχετικά", tint = Color.White)
+                        }
+                        IconButton(onClick = onShowSettings) {
+                            Icon(Icons.Default.Settings, contentDescription = "Ρυθμίσεις", tint = Color.White)
+                        }
                     }
                 }
             }
@@ -1270,7 +1209,7 @@ fun DetailViewScreen(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .background(Color(0xFF00838F).copy(alpha = 0.1f))
+                    .background(Color(0xFF0F60A8).copy(alpha = 0.1f))
                     .padding(16.dp)
             ) {
                 Row(
@@ -1287,7 +1226,7 @@ fun DetailViewScreen(
                                 currentIndex = jokes.size - 1
                             }
                         },
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00838F))
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0F60A8))
                     ) {
                         Icon(Icons.Default.ChevronLeft, contentDescription = "Προηγούμενο")
                         Text("Προηγ.")
@@ -1309,7 +1248,7 @@ fun DetailViewScreen(
                             Icon(
                                 imageVector = if (currentJoke.isFavorite) Icons.Default.Star else Icons.Default.StarBorder,
                                 contentDescription = "Favorite star",
-                                tint = if (currentJoke.isFavorite) Color(0xFFFFB300) else Color(0xFF00838F),
+                                tint = if (currentJoke.isFavorite) Color(0xFFFFB300) else Color(0xFF0F60A8),
                                 modifier = Modifier.size(32.dp)
                             )
                         }
@@ -1324,7 +1263,7 @@ fun DetailViewScreen(
                             Icon(
                                 imageVector = Icons.Default.Share,
                                 contentDescription = "Copy/Share",
-                                tint = Color(0xFF00838F),
+                                tint = Color(0xFF0F60A8),
                                 modifier = Modifier.size(32.dp)
                             )
                         }
@@ -1339,7 +1278,7 @@ fun DetailViewScreen(
                                 currentIndex = 0
                             }
                         },
-                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF00838F))
+                        colors = ButtonDefaults.buttonColors(containerColor = Color(0xFF0F60A8))
                     ) {
                         Text("Επόμ.")
                         Icon(Icons.Default.ChevronRight, contentDescription = "Επόμενο")
