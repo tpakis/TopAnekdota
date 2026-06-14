@@ -1,5 +1,20 @@
-This is a Kotlin Multiplatform project targeting Android, iOS, Web, Desktop (JVM).
+# Top Ανέκδοτα (Top Jokes) - B4A to KMP Migration
 
+<p align="center">
+  <img src="shared/src/commonMain/composeResources/drawable/app_icon.png" width="96" alt="App Icon" />
+  <br />
+  <img src="shared/src/commonMain/composeResources/drawable/bac.png" width="300" alt="Top Anekdota Logo" />
+</p>
+
+This repository contains the complete codebase of the classic Basic4Android (B4A) mobile application **Top Ανέκδοτα!** migrated to a modern, cross-platform **Kotlin Multiplatform (KMP) & Compose Multiplatform (CMP)** application targeting Android, iOS, Desktop (JVM), and Web (JS/WasmJS).
+
+This was done for nostalgic and experimentation purposes only, the app is not going to be published by me in any store in the future.
+
+Most of the functionality, excluding advertisements was migrated. If you liked or like the app please give this repo a star xD. Any bugs or feature requests might be addressed depending on the amount of my available free time (limited) or AI tokens...
+
+---
+
+This is a Kotlin Multiplatform project targeting Android, iOS, Web, Desktop (JVM).
 * [/iosApp](./iosApp/iosApp) contains an iOS application. Even if you’re sharing your UI with Compose Multiplatform,
   you need this entry point for your iOS app. This is also where you should add SwiftUI code for your project.
 
