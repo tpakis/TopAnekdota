@@ -21,6 +21,16 @@ import androidx.compose.ui.input.pointer.PointerType
 import androidx.compose.ui.input.pointer.PointerInputChange
 import androidx.compose.ui.input.pointer.PointerEventPass
 import androidx.compose.ui.input.pointer.PointerEventType
+import androidx.compose.ui.input.pointer.util.VelocityTracker
+import androidx.compose.foundation.gestures.ScrollableDefaults
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.foundation.focusable
+import androidx.compose.ui.input.key.onKeyEvent
+import androidx.compose.ui.input.key.KeyEventType
+import androidx.compose.ui.input.key.Key
+import androidx.compose.ui.input.key.key
+import androidx.compose.ui.input.key.type
 import kotlin.math.roundToInt
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -216,6 +226,7 @@ fun App(context: Any? = null) {
         colorScheme = if (jokeBgColor == 0xFF121212L || jokeBgColor == 0xFF0F172AL) darkColorScheme() else lightColorScheme()
     ) {
         Scaffold(
+            modifier = Modifier.fillMaxSize(),
             snackbarHost = { SnackbarHost(snackbarHostState) }
         ) { paddingValues ->
             Box(
@@ -548,6 +559,11 @@ fun HomeScreen(
 ) {
     val pagerState = rememberPagerState(initialPage = 0, pageCount = { categories.size })
     val scope = rememberCoroutineScope()
+    val focusRequester = remember { FocusRequester() }
+
+    LaunchedEffect(Unit) {
+        focusRequester.requestFocus()
+    }
 
     val facts = remember {
         listOf(
@@ -570,6 +586,44 @@ fun HomeScreen(
         modifier = Modifier
             .fillMaxSize()
             .background(Color(0xFF0F60A8))
+            .focusRequester(focusRequester)
+            .focusable()
+            .onKeyEvent { keyEvent ->
+                if (keyEvent.type == KeyEventType.KeyDown) {
+                    when (keyEvent.key) {
+                        Key.DirectionLeft -> {
+                            scope.launch {
+                                val prevPage = if (pagerState.currentPage > 0) {
+                                    pagerState.currentPage - 1
+                                } else {
+                                    categories.size - 1
+                                }
+                                pagerState.animateScrollToPage(prevPage)
+                            }
+                            true
+                        }
+                        Key.DirectionRight -> {
+                            scope.launch {
+                                val nextPage = if (pagerState.currentPage < categories.size - 1) {
+                                    pagerState.currentPage + 1
+                                } else {
+                                    0
+                                }
+                                pagerState.animateScrollToPage(nextPage)
+                            }
+                            true
+                        }
+                        Key.Enter, Key.NumPadEnter -> {
+                            val currentCat = categories[pagerState.currentPage]
+                            onSelectCategory(currentCat)
+                            true
+                        }
+                        else -> false
+                    }
+                } else {
+                    false
+                }
+            }
     ) {
         Column(
             modifier = Modifier.fillMaxSize(),
@@ -984,6 +1038,7 @@ fun CategoryListScreen(
             } else {
                 val listState = rememberLazyListState()
                 val coroutineScope = rememberCoroutineScope()
+                val flingBehavior = ScrollableDefaults.flingBehavior()
 
                 Box(
                     modifier = Modifier
@@ -992,15 +1047,48 @@ fun CategoryListScreen(
                         .pointerInput(Unit) {
                             awaitPointerEventScope {
                                 while (true) {
-                                    val event = awaitPointerEvent(PointerEventPass.Initial)
-                                    if (event.type == PointerEventType.Scroll) {
-                                        val delta = event.changes.fold(0f) { acc, change ->
-                                            acc + change.scrollDelta.y
+                                    val down = awaitFirstDown(requireUnconsumed = false)
+                                    if (down.type == PointerType.Mouse) {
+                                        val velocityTracker = VelocityTracker()
+                                        velocityTracker.addPosition(down.uptimeMillis, down.position)
+                                        var totalDeltaY = 0f
+                                        var isDragging = false
+                                        
+                                        while (true) {
+                                            val event = awaitPointerEvent(PointerEventPass.Initial)
+                                            val anyPressed = event.changes.any { it.pressed }
+                                            if (!anyPressed) {
+                                                if (isDragging) {
+                                                    val velocityY = velocityTracker.calculateVelocity().y
+                                                    if (kotlin.math.abs(velocityY) > 100f) {
+                                                        coroutineScope.launch {
+                                                            listState.scroll {
+                                                                with(flingBehavior) {
+                                                                    performFling(-velocityY)
+                                                                }
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                                break
+                                            }
+                                            
+                                            event.changes.forEach { change ->
+                                                if (change.type == PointerType.Mouse) {
+                                                    velocityTracker.addPosition(change.uptimeMillis, change.position)
+                                                    val deltaY = change.position.y - change.previousPosition.y
+                                                    totalDeltaY += deltaY
+                                                    
+                                                    if (isDragging) {
+                                                        listState.dispatchRawDelta(-deltaY)
+                                                        change.consume()
+                                                    } else if (kotlin.math.abs(totalDeltaY) > 8f) {
+                                                        isDragging = true
+                                                        change.consume()
+                                                    }
+                                                }
+                                            }
                                         }
-                                        coroutineScope.launch {
-                                            listState.scrollBy(delta * 64f)
-                                        }
-                                        event.changes.forEach { it.consume() }
                                     }
                                 }
                             }
