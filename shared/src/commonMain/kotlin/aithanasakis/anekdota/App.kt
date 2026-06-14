@@ -46,10 +46,15 @@ import kotlinx.coroutines.launch
 import org.jetbrains.compose.resources.Font
 import org.jetbrains.compose.resources.painterResource
 import topanekdota.shared.generated.resources.Res
+import androidx.compose.foundation.gestures.Orientation
+import androidx.compose.foundation.gestures.draggable
+import androidx.compose.foundation.gestures.rememberDraggableState
+import androidx.compose.foundation.gestures.scrollBy
+import androidx.compose.foundation.lazy.rememberLazyListState
 import topanekdota.shared.generated.resources.bac
 import topanekdota.shared.generated.resources.logo
-import topanekdota.shared.generated.resources.ad1
-import topanekdota.shared.generated.resources.ad2
+import topanekdota.shared.generated.resources.logo2
+import topanekdota.shared.generated.resources.app_icon
 import topanekdota.shared.generated.resources.grass
 import topanekdota.shared.generated.resources.fav
 import topanekdota.shared.generated.resources.face
@@ -188,7 +193,7 @@ fun App(context: Any? = null) {
     val currentScreen = navigationStack.last()
 
     PlatformBackHandler(enabled = navigationStack.size > 1) {
-        navigationStack.removeLast()
+        navigationStack.removeAt(navigationStack.lastIndex)
     }
 
     // Dialog state
@@ -268,7 +273,7 @@ fun App(context: Any? = null) {
                                     categoryName = screen.categoryName,
                                     categoryKey = screen.categoryKey,
                                     repository = repository,
-                                    onBack = { navigationStack.removeLast() },
+                                    onBack = { navigationStack.removeAt(navigationStack.lastIndex) },
                                     onSelectJoke = { index ->
                                         navigationStack.add(
                                             Screen.DetailView(
@@ -301,7 +306,7 @@ fun App(context: Any? = null) {
                                     fontName = jokeFontName,
                                     textColor = Color(jokeFontColor),
                                     bgColor = Color(jokeBgColor),
-                                    onBack = { navigationStack.removeLast() },
+                                    onBack = { navigationStack.removeAt(navigationStack.lastIndex) },
                                     onShowSettings = { showSettingsDialog = true },
                                     onShowAbout = { showAboutDialog = true },
                                     onShowHelp = { showHelpDialog = true },
@@ -593,7 +598,7 @@ fun HomeScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f)
-                    .background(Color(0xFF121212))
+                    .background(Color.Transparent)
                     .pointerInput(Unit) {
                         awaitPointerEventScope {
                             while (true) {
@@ -637,133 +642,91 @@ fun HomeScreen(
                     },
                 contentAlignment = Alignment.Center
             ) {
-                HorizontalPager(
-                    state = pagerState,
-                    modifier = Modifier.fillMaxWidth().aspectRatio(680f / 440f),
-                    contentPadding = PaddingValues(0.dp)
-                ) { page ->
-                    val cat = categories[page]
-                    Card(
-                        modifier = Modifier
-                            .fillMaxSize()
-                            .graphicsLayer {
-                                val pageOffset = (
-                                        (pagerState.currentPage - page) + pagerState.currentPageOffsetFraction
-                                        )
-                                alpha = 1f - (pageOffset * pageOffset * 0.4f).coerceIn(0f, 1f)
-                                scaleY = 1f - (pageOffset * pageOffset * 0.15f).coerceIn(0f, 1f)
-                                val isPressed = pressedPageIndex == page
-                                if (isPressed) {
-                                    scaleX *= 0.98f
-                                    scaleY *= 0.98f
-                                }
-                            }
-                            .pointerInput(cat) {
-                                awaitPointerEventScope {
-                                    while (true) {
-                                        val down = awaitFirstDown(requireUnconsumed = true)
-                                        pressedPageIndex = page
-                                        var isConsumed = false
-                                        
-                                        while (true) {
-                                            val event = awaitPointerEvent(PointerEventPass.Final)
-                                            if (event.changes.any { it.isConsumed }) {
-                                                isConsumed = true
-                                                if (pressedPageIndex == page) {
-                                                    pressedPageIndex = null
-                                                }
-                                            }
-                                            if (event.changes.any { !it.pressed && it.previousPressed }) {
-                                                break
-                                            }
-                                        }
-                                        
-                                        if (pressedPageIndex == page) {
-                                            pressedPageIndex = null
-                                        }
-                                        if (!isConsumed) {
-                                            onSelectCategory(cat)
-                                        }
+                Column(
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    HorizontalPager(
+                        state = pagerState,
+                        modifier = Modifier.fillMaxWidth().aspectRatio(680f / 440f),
+                        contentPadding = PaddingValues(0.dp)
+                    ) { page ->
+                        val cat = categories[page]
+                        Card(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .graphicsLayer {
+                                    val pageOffset = (
+                                            (pagerState.currentPage - page) + pagerState.currentPageOffsetFraction
+                                            )
+                                    alpha = 1f - (pageOffset * pageOffset * 0.4f).coerceIn(0f, 1f)
+                                    scaleY = 1f - (pageOffset * pageOffset * 0.15f).coerceIn(0f, 1f)
+                                    val isPressed = pressedPageIndex == page
+                                    if (isPressed) {
+                                        scaleX *= 0.98f
+                                        scaleY *= 0.98f
                                     }
                                 }
-                            },
-                        shape = RoundedCornerShape(0.dp),
-                        elevation = CardDefaults.cardElevation(0.dp)
-                    ) {
-                        Box(modifier = Modifier.fillMaxSize()) {
-                            Image(
-                                painter = painterResource(getCategoryDrawable(cat.index)),
-                                contentDescription = cat.nameGreek,
-                                modifier = Modifier.fillMaxSize(),
-                                contentScale = ContentScale.FillWidth
-                            )
-                            // Overlay gradient
-                            Box(
-                                modifier = Modifier
-                                    .fillMaxSize()
-                                    .background(
-                                        Brush.verticalGradient(
-                                            colors = listOf(Color.Transparent, Color.Black.copy(alpha = 0.7f)),
-                                            startY = 300f
-                                        )
-                                    )
-                            )
-                            // Text Label
-                            Column(
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .align(Alignment.BottomCenter)
-                                    .padding(24.dp),
-                                horizontalAlignment = Alignment.CenterHorizontally
-                            ) {
-                                Text(
-                                    text = cat.nameGreek,
-                                    style = TextStyle(
-                                        color = Color.White,
-                                        fontSize = 24.sp,
-                                        fontWeight = FontWeight.Bold,
-                                        textAlign = TextAlign.Center
-                                    )
-                                )
-                                Spacer(modifier = Modifier.height(4.dp))
-                                Text(
-                                    text = "Πατήστε για να δείτε τα ανέκδοτα",
-                                    style = TextStyle(
-                                        color = Color.White.copy(alpha = 0.7f),
-                                        fontSize = 12.sp,
-                                        textAlign = TextAlign.Center
-                                    )
+                                .pointerInput(cat) {
+                                    awaitPointerEventScope {
+                                        while (true) {
+                                            val down = awaitFirstDown(requireUnconsumed = true)
+                                            pressedPageIndex = page
+                                            var isConsumed = false
+                                            
+                                            while (true) {
+                                                val event = awaitPointerEvent(PointerEventPass.Final)
+                                                if (event.changes.any { it.isConsumed }) {
+                                                    isConsumed = true
+                                                    if (pressedPageIndex == page) {
+                                                        pressedPageIndex = null
+                                                    }
+                                                }
+                                                if (event.changes.any { !it.pressed && it.previousPressed }) {
+                                                    break
+                                                }
+                                            }
+                                            
+                                            if (pressedPageIndex == page) {
+                                                pressedPageIndex = null
+                                            }
+                                            if (!isConsumed) {
+                                                onSelectCategory(cat)
+                                            }
+                                        }
+                                    }
+                                },
+                            shape = RoundedCornerShape(0.dp),
+                            elevation = CardDefaults.cardElevation(0.dp)
+                        ) {
+                            Box(modifier = Modifier.fillMaxSize()) {
+                                Image(
+                                    painter = painterResource(getCategoryDrawable(cat.index)),
+                                    contentDescription = cat.nameGreek,
+                                    modifier = Modifier.fillMaxSize(),
+                                    contentScale = ContentScale.FillWidth
                                 )
                             }
                         }
                     }
-                }
 
-                // PAGER INDICATORS (DOTS) OVERLAYED AT TOP CENTER
-                Row(
-                    modifier = Modifier
-                        .align(Alignment.TopCenter)
-                        .padding(top = 12.dp),
-                    horizontalArrangement = Arrangement.Center
-                ) {
-                    repeat(categories.size) { iteration ->
-                        val color = if (pagerState.currentPage == iteration) Color.White else Color.White.copy(alpha = 0.4f)
-                        Box(
-                            modifier = Modifier
-                                .padding(4.dp)
-                                .clip(CircleShape)
-                                .background(color)
-                                .size(8.dp)
-                        )
+                    Spacer(modifier = Modifier.height(32.dp))
+
+                    // PAGER INDICATORS (DOTS) Below Pager
+                    Row(
+                        horizontalArrangement = Arrangement.Center
+                    ) {
+                        repeat(categories.size) { iteration ->
+                            val color = if (pagerState.currentPage == iteration) Color.White else Color.White.copy(alpha = 0.4f)
+                            Box(
+                                modifier = Modifier
+                                    .padding(4.dp)
+                                    .clip(CircleShape)
+                                    .background(color)
+                                    .size(8.dp)
+                            )
+                        }
                     }
-                }
-            }
-
-            var showAd1 by remember { mutableStateOf(true) }
-            LaunchedEffect(Unit) {
-                while (true) {
-                    kotlinx.coroutines.delay(5000)
-                    showAd1 = !showAd1
                 }
             }
 
@@ -777,7 +740,7 @@ fun HomeScreen(
             ) {
                 // Wooden Sign
                 Image(
-                    painter = painterResource(if (showAd1) Res.drawable.ad1 else Res.drawable.ad2),
+                    painter = painterResource(Res.drawable.logo2),
                     contentDescription = "Το ήξερες ότι...",
                     modifier = Modifier
                         .padding(bottom = 12.dp) // Lift it slightly so grass covers the bottom of the posts
@@ -1017,70 +980,85 @@ fun CategoryListScreen(
                     )
                 }
             } else {
-                LazyColumn(
+                val listState = rememberLazyListState()
+
+                Box(
                     modifier = Modifier
                         .fillMaxWidth()
                         .weight(1f)
-                        .padding(horizontal = 8.dp, vertical = 4.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
                 ) {
-                    itemsIndexed(jokesList) { index, joke ->
-                        val itemNumber = index + 1
-                        Card(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .combinedClickable(
-                                    onClick = { onSelectJoke(index) },
-                                    onLongClick = { 
-                                        onJokeLongPressed(joke)
-                                        // Reload the lists to reflect changes immediately
-                                        reloadJokes()
-                                    }
-                                ),
-                            shape = RoundedCornerShape(12.dp),
-                            colors = CardDefaults.cardColors(
-                                containerColor = if (joke.isCustom) Color(0xFFE8F5E9) else Color.White
-                            ),
-                            elevation = CardDefaults.cardElevation(2.dp)
-                        ) {
-                            Row(
+                    LazyColumn(
+                        state = listState,
+                        modifier = Modifier
+                            .fillMaxSize()
+                            .padding(horizontal = 8.dp, vertical = 4.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        itemsIndexed(jokesList) { index, joke ->
+                            val itemNumber = index + 1
+                            Card(
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(16.dp),
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Box(
-                                    modifier = Modifier
-                                        .size(32.dp)
-                                        .clip(CircleShape)
-                                        .background(Color(0xFF0F60A8).copy(alpha = 0.15f)),
-                                    contentAlignment = Alignment.Center
-                                ) {
-                                    Text(
-                                        text = "$itemNumber",
-                                        fontWeight = FontWeight.Bold,
-                                        color = Color(0xFF0F60A8),
-                                        fontSize = 14.sp
-                                    )
-                                }
-                                Spacer(modifier = Modifier.width(16.dp))
-                                Text(
-                                    text = joke.text,
-                                    maxLines = 2,
-                                    overflow = TextOverflow.Ellipsis,
-                                    style = TextStyle(
-                                        fontSize = 15.sp,
-                                        color = Color.Black
+                                    .combinedClickable(
+                                        onClick = { onSelectJoke(index) },
+                                        onLongClick = { 
+                                            onJokeLongPressed(joke)
+                                            // Reload the lists to reflect changes immediately
+                                            reloadJokes()
+                                        }
                                     ),
-                                    modifier = Modifier.weight(1f)
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
-                                if (joke.isFavorite) {
-                                    Icon(Icons.Default.Star, contentDescription = "Favorite", tint = Color(0xFFFFB300))
+                                shape = RoundedCornerShape(12.dp),
+                                colors = CardDefaults.cardColors(
+                                    containerColor = if (joke.isCustom) Color(0xFFE8F5E9) else Color.White
+                                ),
+                                elevation = CardDefaults.cardElevation(2.dp)
+                            ) {
+                                Row(
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .padding(16.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(32.dp)
+                                            .clip(CircleShape)
+                                            .background(Color(0xFF0F60A8).copy(alpha = 0.15f)),
+                                        contentAlignment = Alignment.Center
+                                    ) {
+                                        Text(
+                                            text = "$itemNumber",
+                                            fontWeight = FontWeight.Bold,
+                                            color = Color(0xFF0F60A8),
+                                            fontSize = 14.sp
+                                        )
+                                    }
+                                    Spacer(modifier = Modifier.width(16.dp))
+                                    Text(
+                                        text = joke.text,
+                                        maxLines = 2,
+                                        overflow = TextOverflow.Ellipsis,
+                                        style = TextStyle(
+                                            fontSize = 15.sp,
+                                            color = Color.Black
+                                        ),
+                                        modifier = Modifier.weight(1f)
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    if (joke.isFavorite) {
+                                        Icon(Icons.Default.Star, contentDescription = "Favorite", tint = Color(0xFFFFB300))
+                                    }
                                 }
                             }
                         }
                     }
+
+                    PlatformScrollbar(
+                        state = listState,
+                        modifier = Modifier
+                            .align(Alignment.CenterEnd)
+                            .fillMaxHeight()
+                    )
                 }
             }
 
