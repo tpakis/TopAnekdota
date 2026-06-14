@@ -195,8 +195,8 @@ fun App(context: Any? = null) {
     }
 
     var isDbReady by remember { mutableStateOf(false) }
-    LaunchedEffect(repository) {
-        repository.ensureDatabasePopulated()
+    LaunchedEffect(repository, settingsManager) {
+        repository.ensureDatabasePopulated(settingsManager)
         isDbReady = true
     }
 
@@ -557,7 +557,8 @@ fun App(context: Any? = null) {
 fun HomeScreen(
     onSelectCategory: (CategoryInfo) -> Unit
 ) {
-    val pagerState = rememberPagerState(initialPage = 0, pageCount = { categories.size })
+    val pageCount = 10000 * categories.size
+    val pagerState = rememberPagerState(initialPage = pageCount / 2, pageCount = { pageCount })
     val scope = rememberCoroutineScope()
     val focusRequester = remember { FocusRequester() }
 
@@ -593,28 +594,18 @@ fun HomeScreen(
                     when (keyEvent.key) {
                         Key.DirectionLeft -> {
                             scope.launch {
-                                val prevPage = if (pagerState.currentPage > 0) {
-                                    pagerState.currentPage - 1
-                                } else {
-                                    categories.size - 1
-                                }
-                                pagerState.animateScrollToPage(prevPage)
+                                pagerState.animateScrollToPage(pagerState.currentPage - 1)
                             }
                             true
                         }
                         Key.DirectionRight -> {
                             scope.launch {
-                                val nextPage = if (pagerState.currentPage < categories.size - 1) {
-                                    pagerState.currentPage + 1
-                                } else {
-                                    0
-                                }
-                                pagerState.animateScrollToPage(nextPage)
+                                pagerState.animateScrollToPage(pagerState.currentPage + 1)
                             }
                             true
                         }
                         Key.Enter, Key.NumPadEnter -> {
-                            val currentCat = categories[pagerState.currentPage]
+                            val currentCat = categories[pagerState.currentPage % categories.size]
                             onSelectCategory(currentCat)
                             true
                         }
@@ -687,7 +678,7 @@ fun HomeScreen(
                                     if (isDragging) {
                                         val targetPage = (pagerState.currentPage + pagerState.currentPageOffsetFraction)
                                             .roundToInt()
-                                            .coerceIn(0, categories.lastIndex)
+                                            .coerceIn(0, pageCount - 1)
                                         scope.launch {
                                             pagerState.animateScrollToPage(targetPage)
                                         }
@@ -707,7 +698,7 @@ fun HomeScreen(
                         modifier = Modifier.fillMaxWidth().aspectRatio(680f / 440f),
                         contentPadding = PaddingValues(0.dp)
                     ) { page ->
-                        val cat = categories[page]
+                        val cat = categories[page % categories.size]
                         Card(
                             modifier = Modifier
                                 .fillMaxSize()
@@ -773,7 +764,7 @@ fun HomeScreen(
                         horizontalArrangement = Arrangement.Center
                     ) {
                         repeat(categories.size) { iteration ->
-                            val color = if (pagerState.currentPage == iteration) Color.White else Color.White.copy(alpha = 0.4f)
+                            val color = if (pagerState.currentPage % categories.size == iteration) Color.White else Color.White.copy(alpha = 0.4f)
                             Box(
                                 modifier = Modifier
                                     .padding(4.dp)

@@ -117,6 +117,34 @@ class SqliteJokeDatabase(private val dbPath: String) : JokeDatabase {
         return jokes
     }
 
+    override suspend fun clearStandardJokes() {
+        val conn = getConnection()
+        conn.prepare("DELETE FROM jokes WHERE is_custom = 0").use { stmt ->
+            stmt.step()
+        }
+    }
+
+    override suspend fun beginTransaction() {
+        val conn = getConnection()
+        conn.prepare("BEGIN IMMEDIATE TRANSACTION").use { stmt ->
+            stmt.step()
+        }
+    }
+
+    override suspend fun commitTransaction() {
+        val conn = getConnection()
+        conn.prepare("COMMIT").use { stmt ->
+            stmt.step()
+        }
+    }
+
+    override suspend fun rollbackTransaction() {
+        val conn = getConnection()
+        conn.prepare("ROLLBACK").use { stmt ->
+            stmt.step()
+        }
+    }
+
     override suspend fun isEmpty(): Boolean {
         val conn = getConnection()
         var count = 0

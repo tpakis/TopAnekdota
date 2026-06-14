@@ -7,8 +7,12 @@ import kotlinx.coroutines.withContext
 
 class JokeRepository(private val database: JokeDatabase) {
 
-    suspend fun ensureDatabasePopulated() {
-        if (!database.isEmpty()) return
+    suspend fun ensureDatabasePopulated(settingsManager: SettingsManager) {
+        val targetVersion = 2
+        val dbIsEmpty = database.isEmpty()
+        val savedVersion = settingsManager.jokesVersion
+
+        if (!dbIsEmpty && savedVersion >= targetVersion) return
 
         val files = listOf(
             "diafora" to "diafora.txt",
@@ -24,22 +28,40 @@ class JokeRepository(private val database: JokeDatabase) {
         )
 
         withContext(ioDispatcher) {
-            for ((category, filename) in files) {
-                try {
-                    val bytes = Res.readBytes("files/$filename")
-                    val content = bytes.decodeToString()
-                    // B4A files use standard newlines, but let's split by both \r\n and \n
-                    val lines = content.split(Regex("\\r?\\n"))
-                    for (line in lines) {
-                        val cleaned = sanitizeJokeText(line)
-                        if (cleaned.isNotEmpty()) {
-                            database.insertJoke(category, cleaned, isFavorite = false, isCustom = false)
-                        }
-                    }
-                } catch (e: Exception) {
-                    println("Error loading file files/$filename: ${e.message}")
-                }
+            val favoriteTexts = if (!dbIsEmpty) {
+                database.getFavorites().filter { !it.isCustom }.map { it.text }.toSet()
+            } else {
+                emptySet()
             }
+
+            database.beginTransaction()
+            try {
+                if (!dbIsEmpty) {
+                    database.clearStandardJokes()
+                }
+
+                for ((category, filename) in files) {
+                    try {
+                        val bytes = Res.readBytes("files/$filename")
+                        val content = bytes.decodeToString()
+                        val lines = content.split(Regex("\\r?\\n"))
+                        for (line in lines) {
+                            val cleaned = sanitizeJokeText(line)
+                            if (cleaned.isNotEmpty()) {
+                                val isFav = favoriteTexts.contains(cleaned)
+                                database.insertJoke(category, cleaned, isFavorite = isFav, isCustom = false)
+                            }
+                        }
+                    } catch (e: Exception) {
+                        println("Error loading file files/$filename: ${e.message}")
+                    }
+                }
+                database.commitTransaction()
+            } catch (e: Exception) {
+                database.rollbackTransaction()
+                throw e
+            }
+            settingsManager.jokesVersion = targetVersion
         }
     }
 

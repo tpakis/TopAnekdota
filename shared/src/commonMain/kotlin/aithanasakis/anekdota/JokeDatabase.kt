@@ -6,6 +6,10 @@ interface JokeDatabase {
     suspend fun setFavorite(jokeId: Int, isFavorite: Boolean)
     suspend fun getFavorites(): List<Joke>
     suspend fun searchJokes(category: String, query: String): List<Joke>
+    suspend fun clearStandardJokes()
+    suspend fun beginTransaction()
+    suspend fun commitTransaction()
+    suspend fun rollbackTransaction()
     suspend fun isEmpty(): Boolean
 }
 

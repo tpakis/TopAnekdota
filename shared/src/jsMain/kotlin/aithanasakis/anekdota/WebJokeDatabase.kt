@@ -87,6 +87,14 @@ class WebJokeDatabase : JokeDatabase {
         return jokesList.filter { it.text.contains(query, ignoreCase = true) }
     }
 
+    override suspend fun clearStandardJokes() {
+        jokes.removeAll { !it.isCustom }
+    }
+
+    override suspend fun beginTransaction() {}
+    override suspend fun commitTransaction() {}
+    override suspend fun rollbackTransaction() {}
+
     override suspend fun isEmpty(): Boolean {
         return jokes.filter { !it.isCustom }.isEmpty()
     }

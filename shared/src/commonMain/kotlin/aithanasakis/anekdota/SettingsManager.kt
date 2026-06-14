@@ -2,6 +2,10 @@ package aithanasakis.anekdota
 
 class SettingsManager(private val storage: KeyValueStorage) {
 
+    var jokesVersion: Int
+        get() = storage.getInt("jokes_version", 1)
+        set(value) = storage.putInt("jokes_version", value)
+
     var fontSize: Int
         get() = storage.getInt("size", 16)
         set(value) = storage.putInt("size", value)
