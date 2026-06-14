@@ -12,6 +12,10 @@ class MainActivity : ComponentActivity() {
         enableEdgeToEdge()
         super.onCreate(savedInstanceState)
 
+        // Set status bar color to the theme's nice blue and make icons light (white)
+        window.statusBarColor = android.graphics.Color.parseColor("#0F60A8")
+        androidx.core.view.WindowCompat.getInsetsController(window, window.decorView).isAppearanceLightStatusBars = false
+
         setContent {
             App(this)
         }
