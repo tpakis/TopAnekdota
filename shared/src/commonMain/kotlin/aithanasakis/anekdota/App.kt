@@ -20,6 +20,7 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.pointer.PointerType
 import androidx.compose.ui.input.pointer.PointerInputChange
 import androidx.compose.ui.input.pointer.PointerEventPass
+import androidx.compose.ui.input.pointer.PointerEventType
 import kotlin.math.roundToInt
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -982,11 +983,28 @@ fun CategoryListScreen(
                 }
             } else {
                 val listState = rememberLazyListState()
+                val coroutineScope = rememberCoroutineScope()
 
                 Box(
                     modifier = Modifier
                         .fillMaxWidth()
                         .weight(1f)
+                        .pointerInput(Unit) {
+                            awaitPointerEventScope {
+                                while (true) {
+                                    val event = awaitPointerEvent(PointerEventPass.Initial)
+                                    if (event.type == PointerEventType.Scroll) {
+                                        val delta = event.changes.fold(0f) { acc, change ->
+                                            acc + change.scrollDelta.y
+                                        }
+                                        coroutineScope.launch {
+                                            listState.scrollBy(delta * 64f)
+                                        }
+                                        event.changes.forEach { it.consume() }
+                                    }
+                                }
+                            }
+                        }
                 ) {
                     LazyColumn(
                         state = listState,
