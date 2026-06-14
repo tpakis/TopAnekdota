@@ -9,73 +9,141 @@ description: >-
 # B4A to KMP Migration Guide
 
 ## Overview
-This skill outlines the step-by-step best practices, common gotchas, and optimizations required when migrating legacy Basic4Android (B4A) codebases to Compose-based Kotlin Multiplatform (KMP).
-
-## Key Gotchas & Best Practices
-
-### 1. Database Prepopulation & Updates
-- **Problem**: Legacy B4A apps often store static databases directly on the device. In KMP, shipping a raw binary `.db` file in resource assets is problematic because a database must be writeable, forcing platform-specific file copy logic. Overwriting the `.db` file on app update deletes user favorites or custom jokes.
-- **Best Practice**:
-  - Keep standard static records in clean text or CSV resource files (e.g. inside `composeResources/files/`).
-  - Read resource files and populate the database programmatically on first launch.
-  - Implement a `jokesVersion` (or `dbVersion`) key in local settings.
-  - When updating jokes in future versions:
-    1. Check if the stored settings version is less than the new version.
-    2. Retrieve any user favorites or custom entries from the current DB.
-    3. Clear standard static records only (e.g. `DELETE FROM jokes WHERE is_custom = 0`).
-    4. Repopulate all records from the new resource files.
-    5. Re-apply favorites matching the saved entries by text signature.
-    6. Update the settings version key.
-
-### 2. SQLite Bulk Insertion Performance
-- **Problem**: Inserting thousands of records into SQLite one-by-one commits a new transaction for each insertion. On mobile flash memory, this triggers thousands of disk-sync writes, taking up to a minute and freezing the application start-up.
-- **Best Practice**:
-  - Expose database transaction control methods (`beginTransaction()`, `commitTransaction()`, `rollbackTransaction()`) in the common database interface.
-  - Execute SQL controls manually for SQLite platforms:
-    - `BEGIN IMMEDIATE TRANSACTION`
-    - `COMMIT`
-    - `ROLLBACK`
-  - Wrap the entire resource parsing and insertion loop inside a single transaction. This reduces commit operations to **1 single write**, speeding up the process from 60 seconds to **under 100 milliseconds** (instant loading).
-
-### 3. Desktop and Web Paging & Scrolling
-- **Problem**: Compose Multiplatform's `LazyColumn` scrolling behaves differently across targets. 
-  1. If outer containers (like `AnimatedContent`) lack explicit size limits (e.g. `Modifier.fillMaxSize()`), they propagate infinite height constraints to child lists. This causes `LazyColumn` to render all list items at once, breaking scrollable viewports.
-  2. Native mouse-drag list scrolling (press left click + drag list up and down) is not natively enabled on desktop/web, leading to frozen user interactions when trying to drag.
-- **Best Practice**:
-  - Ensure the parent container of `LazyColumn` has bounded dimensions (e.g. `.fillMaxSize()` or `.weight(1f)`).
-  - Implement custom pointer inputs on Desktop/Web to intercept mouse drags in `PointerEventPass.Initial`, scroll the list using `listState.dispatchRawDelta(-deltaY)`, and apply deceleration decay momentum upon mouse release using a `VelocityTracker` and `ScrollableDefaults.flingBehavior()`.
-
-### 4. Backward-Compatible API Methods
-- **Problem**: Compiling KMP with Kotlin/JVM and Android desugaring might result in `NoSuchMethodError` crashes at runtime on older Android devices when using newer JDK methods.
-- **Example**: `SnapshotStateList.removeLast()` compiles to a JDK 21 method not available on older Android runtimes.
-- **Best Practice**: Use fully backward-compatible JVM methods, such as `list.removeAt(list.lastIndex)`.
-
-### 5. Infinite Wrapping Carousel
-- **Problem**: A standard `HorizontalPager` limits swipe navigation from page `0` to the last page.
-- **Best Practice**:
-  - Set the pager `pageCount` to a very large virtual number (e.g., `10000 * categories.size`).
-  - Initialize the state at the exact middle of the virtual range `pageCount / 2`.
-  - Map absolute page indexes to category indexes using modulo math (`page % categories.size`) for pager cards, pager indicators, selected clicks, and key navigations.
-  - This enables infinite wrapping swipes in both directions.
+This skill outlines the step-by-step best practices, architecture mappings, code conversions, and common gotchas when migrating legacy Basic4Android (B4A) applications to Compose-based Kotlin Multiplatform (KMP).
 
 ---
 
-## Migration Workflow
+## Architectural Mapping (B4A vs. KMP)
 
-### Step 1: Resource Distillation
-1. Convert B4A databases or CSV exports to clean, line-delimited text assets.
-2. Standardize all HTML/B4A entity characters (e.g. replacing `<br/>` with `\n` and converting HTML code entities).
+| B4A Architecture / API | KMP Multiplatform Equivalent | Description / Mapping Strategy |
+| :--- | :--- | :--- |
+| **Activity / Visual Designer Layouts (`.bal`)** | **Compose Multiplatform (`@Composable`)** | Replace imperative layout loads with declarative Compose UI trees. |
+| **`Process_Globals` / `Globals`** | **Standard Kotlin Classes & Compose State** | Map global variables to singletons, view models, or Compose state variables (`mutableStateOf`). |
+| **`KeyValueStore` (KVS) Library** | **`KeyValueStorage` (Expect/Actual Interface)** | Wrap platform-native preferences (Android `SharedPreferences`, iOS `NSUserDefaults`, JVM `Preferences`, Web `localStorage`). |
+| **`SQL` Object / Cursor** | **`SQLiteConnection` & `SQLiteStatement`** | Use `androidx.sqlite:sqlite-bundled` for native driver access across Android, iOS, and Desktop. |
+| **`File.DirAssets` / Files Folder** | **`composeResources/files/`** | Place files in the common resource distribution and read them via `Res.readBytes("files/name")`. |
+| **HTML Utilities (`String.Replace`)** | **Kotlin String Replacement Functions** | Map B4A HTML-formatted strings (CSV exports) to sanitized Kotlin strings. |
 
-### Step 2: Interface Mapping
-1. Define abstract `KeyValueStorage` and `JokeDatabase` interfaces in `commonMain`.
-2. Implement actual platform behaviors:
-   - Android (`SharedPreferences` & SQLite)
-   - iOS (`NSUserDefaults` & SQLite)
-   - JVM (`Preferences` & SQLite)
-   - JS/Wasm (`localStorage` & in-memory arrays)
+---
 
-### Step 3: Transaction Optimization
-Wrap database initialization and prepopulation logic in transaction boundaries.
+## Code Translations & Implementation Patterns
 
-### Step 4: UI Alignment
-Adjust layouts, scrolling behavior, keyboard arrow controls, and gesture decoders for a seamless desktop/web/mobile experience.
+### 1. File Access & Assets
+In B4A, files are loaded synchronously from the assets directory:
+```basic
+' B4A Code
+Dim TextReader1 As TextReader
+TextReader1.Initialize(File.OpenInput(File.DirAssets, "diafora.txt"))
+Dim line As String = TextReader1.ReadLine
+```
+In KMP, reading resources is asynchronous and platform-independent using Compose Resources:
+```kotlin
+// KMP Kotlin Code
+val bytes = Res.readBytes("files/diafora.txt")
+val content = bytes.decodeToString()
+val lines = content.split(Regex("\\r?\\n"))
+```
+
+### 2. Local Key-Value Preferences
+In B4A, basic preferences are stored in the custom `KeyValueStore` class:
+```basic
+' B4A Code
+Dim kvs As KeyValueStore
+kvs.Initialize(File.DirInternal, "settings")
+kvs.PutSimple("fontSize", 16)
+Dim size As Int = kvs.GetSimple("fontSize")
+```
+In KMP, we define a common interface and implement it on each platform:
+```kotlin
+// commonMain Interface
+interface KeyValueStorage {
+    fun getInt(key: String, defaultValue: Int): Int
+    fun putInt(key: String, value: Int)
+}
+```
+**Platform Implementations**:
+- **Android**: `context.getSharedPreferences("prefs", Context.MODE_PRIVATE)`
+- **iOS**: `NSUserDefaults.standardUserDefaults`
+- **JVM (Desktop)**: `Preferences.userRoot().node("settings")`
+- **Web (JS/WasmJs)**: `window.localStorage`
+
+### 3. SQLite Database Operations
+In B4A, transactions and executions are managed through the B4A SQL library:
+```basic
+' B4A Code
+Dim SQL1 As SQL
+SQL1.Initialize(File.DirInternal, "jokes.db", True)
+SQL1.BeginTransaction
+Try
+    SQL1.ExecNonQuery2("INSERT INTO jokes (category, text) VALUES (?, ?)", Array As Object("diafora", "Joke text"))
+    SQL1.TransactionSuccessful
+Catch
+    Log(LastException.Message)
+End Try
+SQL1.EndTransaction
+```
+In KMP, we define an abstract database interface and use the `androidx.sqlite` bundled driver for SQLite platforms:
+```kotlin
+// KMP Kotlin Code
+class SqliteJokeDatabase(private val dbPath: String) : JokeDatabase {
+    private val driver: SQLiteDriver = BundledSQLiteDriver()
+    private var connection: SQLiteConnection? = null
+
+    private fun getConnection(): SQLiteConnection {
+        if (connection == null) {
+            connection = driver.open(dbPath)
+            connection!!.prepare("CREATE TABLE IF NOT EXISTS jokes (...)").use { it.step() }
+        }
+        return connection!!
+    }
+
+    override suspend fun beginTransaction() {
+        getConnection().prepare("BEGIN IMMEDIATE TRANSACTION").use { it.step() }
+    }
+
+    override suspend fun commitTransaction() {
+        getConnection().prepare("COMMIT").use { it.step() }
+    }
+
+    override suspend fun rollbackTransaction() {
+        getConnection().prepare("ROLLBACK").use { it.step() }
+    }
+
+    override suspend fun insertJoke(category: String, text: String): Int {
+        val conn = getConnection()
+        conn.prepare("INSERT INTO jokes (category, text) VALUES (?, ?)").use { stmt ->
+            stmt.bindText(1, category)
+            stmt.bindText(2, text)
+            stmt.step()
+        }
+    }
+}
+```
+
+---
+
+## Critical Gotchas & Best Practices
+
+### 1. Database Prepopulation & safe Upgrades
+- **Problem**: Overwriting the SQLite database file on app updates erases user favorites or custom jokes.
+- **Best Practice**:
+  - Keep standard static records in clean text or CSV resource files (e.g. inside `composeResources/files/`).
+  - Read resource files and populate the database programmatically on first launch.
+  - Track a `dbVersion` preference in settings. When new records are imported:
+    1. Read and backup the text of all standard jokes currently marked as favorites (`is_favorite = 1` and `is_custom = 0`).
+    2. Clear only standard jokes (`DELETE FROM jokes WHERE is_custom = 0`). This preserves custom jokes.
+    3. Re-populate database from the new resource files.
+    4. Match and re-apply favorites state from the backup set.
+    5. Update `dbVersion` in settings.
+
+### 2. SQLite Bulk Insertion Speed
+- **Problem**: Inserting 5,000 jokes without a transaction causes SQLite to commit and sync to the disk 5,000 times, causing application freezing of up to 60+ seconds.
+- **Best Practice**: Wrap the entire populating loop in a single transaction (`BEGIN IMMEDIATE TRANSACTION` ... `COMMIT`). This combines all insertions into a single transaction and drops populate time from a minute to **under 100 milliseconds**.
+
+### 3. Pager & List Scrolling Optimizations
+- **Problem**: 
+  1. Compose list containers (`LazyColumn`) inside unconstrained layouts (e.g. `AnimatedContent` lacking `.fillMaxSize()`) fail to establish scroll boundaries and attempt to measure/render all items at once.
+  2. Infinite carousels (`HorizontalPager`) natively stop at bounds.
+- **Best Practice**:
+  - Explicitly restrict list heights (e.g., `weight(1f)` or `fillMaxSize()`).
+  - Map pagers to wrap infinitely by initializing `pagerState` at the middle of a very large range (`10,000 * size`) and retrieving items modulo-style: `val item = items[page % items.size]`.
