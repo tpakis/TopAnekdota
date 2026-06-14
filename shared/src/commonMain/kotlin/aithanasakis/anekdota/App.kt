@@ -250,6 +250,7 @@ fun App(context: Any? = null) {
                 } else {
                     AnimatedContent(
                         targetState = currentScreen,
+                        modifier = Modifier.fillMaxSize(),
                         transitionSpec = {
                             fadeIn() togetherWith fadeOut()
                         }
