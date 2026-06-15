@@ -227,12 +227,13 @@ fun App(context: Any? = null) {
     ) {
         Scaffold(
             modifier = Modifier.fillMaxSize(),
-            snackbarHost = { SnackbarHost(snackbarHostState) }
+            snackbarHost = { SnackbarHost(snackbarHostState) },
+            contentWindowInsets = WindowInsets(0, 0, 0, 0)
         ) { paddingValues ->
             Box(
                 modifier = Modifier
                     .fillMaxSize()
-                    .padding(paddingValues)
+                    .windowInsetsPadding(WindowInsets.navigationBars)
             ) {
                 if (!isDbReady) {
                     Box(
@@ -624,8 +625,9 @@ fun HomeScreen(
             Box(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(110.dp)
-                    .background(Color(0xFF0F60A8)),
+                    .background(Color(0xFF0F60A8))
+                    .statusBarsPadding()
+                    .height(110.dp),
                 contentAlignment = Alignment.Center
             ) {
                 Image(
@@ -956,6 +958,7 @@ fun CategoryListScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .background(Color(0xFF0F60A8))
+                    .statusBarsPadding()
                     .padding(vertical = 8.dp, horizontal = 12.dp)
             ) {
                 Row(
@@ -1225,6 +1228,7 @@ fun DetailViewScreen(
                 modifier = Modifier
                     .fillMaxWidth()
                     .background(Color(0xFF0F60A8))
+                    .statusBarsPadding()
                     .padding(vertical = 8.dp, horizontal = 12.dp)
             ) {
                 Row(
