@@ -16,7 +16,12 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.gestures.awaitFirstDown
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.foundation.border
+import androidx.compose.foundation.Canvas
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.graphics.PathEffect
 import androidx.compose.ui.input.pointer.PointerType
 import androidx.compose.ui.input.pointer.PointerInputChange
 import androidx.compose.ui.input.pointer.PointerEventPass
@@ -320,6 +325,7 @@ fun App(context: Any? = null) {
                                     fontName = jokeFontName,
                                     textColor = Color(jokeFontColor),
                                     bgColor = Color(jokeBgColor),
+                                    settingsManager = settingsManager,
                                     onBack = { navigationStack.removeAt(navigationStack.lastIndex) },
                                     onShowSettings = { showSettingsDialog = true },
                                     onShowAbout = { showAboutDialog = true },
@@ -1186,6 +1192,7 @@ fun DetailViewScreen(
     fontName: String,
     textColor: Color,
     bgColor: Color,
+    settingsManager: SettingsManager,
     onBack: () -> Unit,
     onShowSettings: () -> Unit,
     onShowAbout: () -> Unit,
@@ -1216,6 +1223,7 @@ fun DetailViewScreen(
     val currentJoke = jokes[currentIndex]
     val clipboardManager = LocalClipboardManager.current
     val scope = rememberCoroutineScope()
+    var showGestureTutorial by remember { mutableStateOf(settingsManager.showGestureOverlay) }
 
     Box(
         modifier = Modifier
@@ -1264,25 +1272,51 @@ fun DetailViewScreen(
                 }
             }
 
-            // READING JOKE TEXT AREA (Scrollable & Swipable simulated via Next/Prev buttons)
-            Box(
+            // READING JOKE TEXT AREA (Scrollable & Swipable simulated via Next/Prev buttons & Double-Tap gesture)
+            BoxWithConstraints(
                 modifier = Modifier
                     .fillMaxWidth()
                     .weight(1f)
-                    .padding(20.dp)
-                    .verticalScroll(rememberScrollState()),
+                    .padding(20.dp),
                 contentAlignment = Alignment.TopCenter
             ) {
-                Text(
-                    text = currentJoke.text,
-                    style = TextStyle(
-                        color = textColor,
-                        fontSize = fontSize.sp,
-                        fontFamily = getCustomFontFamily(fontName),
-                        lineHeight = (fontSize + 6).sp
-                    ),
-                    modifier = Modifier.fillMaxWidth()
-                )
+                val halfWidth = constraints.maxWidth / 2
+                Box(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .pointerInput(jokes, currentIndex) {
+                            detectTapGestures(
+                                onDoubleTap = { offset ->
+                                    if (offset.x < halfWidth) {
+                                        if (currentIndex > 0) {
+                                            currentIndex--
+                                        } else {
+                                            currentIndex = jokes.size - 1
+                                        }
+                                    } else {
+                                        if (currentIndex < jokes.size - 1) {
+                                            currentIndex++
+                                        } else {
+                                            currentIndex = 0
+                                        }
+                                    }
+                                }
+                            )
+                        }
+                        .verticalScroll(rememberScrollState()),
+                    contentAlignment = Alignment.TopCenter
+                ) {
+                    Text(
+                        text = currentJoke.text,
+                        style = TextStyle(
+                            color = textColor,
+                            fontSize = fontSize.sp,
+                            fontFamily = getCustomFontFamily(fontName),
+                            lineHeight = (fontSize + 6).sp
+                        ),
+                        modifier = Modifier.fillMaxWidth()
+                    )
+                }
             }
 
             // ACTION CONTROLS BOTTOM BAR
@@ -1362,6 +1396,207 @@ fun DetailViewScreen(
                     ) {
                         Text("Επόμ.")
                         Icon(Icons.Default.ChevronRight, contentDescription = "Επόμενο")
+                    }
+                }
+            }
+        }
+
+        if (showGestureTutorial) {
+            Box(
+                modifier = Modifier
+                    .fillMaxSize()
+                    .background(Color.Black.copy(alpha = 0.85f))
+                    .pointerInput(Unit) {
+                        detectTapGestures {
+                            settingsManager.showGestureOverlay = false
+                            showGestureTutorial = false
+                        }
+                    },
+                contentAlignment = Alignment.Center
+            ) {
+                Column(
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(24.dp),
+                    horizontalAlignment = Alignment.CenterHorizontally,
+                    verticalArrangement = Arrangement.Center
+                ) {
+                    Text(
+                        text = "Οδηγός Πλοήγησης",
+                        style = TextStyle(
+                            color = Color.White,
+                            fontSize = 22.sp,
+                            fontWeight = FontWeight.Bold,
+                            textAlign = TextAlign.Center
+                        )
+                    )
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Text(
+                        text = "Μπορείτε να αλλάξετε ανέκδοτο με διπλό πάτημα (double tap) στις πλευρές της οθόνης.",
+                        style = TextStyle(
+                            color = Color.White.copy(alpha = 0.8f),
+                            fontSize = 14.sp,
+                            textAlign = TextAlign.Center
+                        )
+                    )
+
+                    Spacer(modifier = Modifier.height(40.dp))
+
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f, fill = false),
+                        horizontalArrangement = Arrangement.SpaceEvenly,
+                        verticalAlignment = Alignment.CenterVertically
+                    ) {
+                        // Left half
+                        Column(
+                            modifier = Modifier.weight(1f),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.ChevronLeft,
+                                    contentDescription = null,
+                                    tint = Color.White,
+                                    modifier = Modifier.size(28.dp)
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Box(
+                                    modifier = Modifier
+                                        .size(48.dp)
+                                        .background(Color.White.copy(alpha = 0.15f), shape = CircleShape)
+                                        .border(1.5.dp, Color.White.copy(alpha = 0.4f), CircleShape),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = "2x",
+                                        style = TextStyle(
+                                            color = Color.White,
+                                            fontSize = 16.sp,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                    )
+                                }
+                            }
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Text(
+                                text = "Διπλό Πάτημα\nΑριστερά",
+                                style = TextStyle(
+                                    color = Color.White,
+                                    fontSize = 15.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    textAlign = TextAlign.Center
+                                )
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = "Προηγούμενο\nανέκδοτο",
+                                style = TextStyle(
+                                    color = Color.White.copy(alpha = 0.6f),
+                                    fontSize = 12.sp,
+                                    textAlign = TextAlign.Center
+                                )
+                            )
+                        }
+
+                        // Divider Line
+                        Canvas(
+                            modifier = Modifier
+                                .height(120.dp)
+                                .width(2.dp)
+                        ) {
+                            val strokeWidth = 2f
+                            val dashPathEffect = PathEffect.dashPathEffect(floatArrayOf(10f, 10f), 0f)
+                            drawLine(
+                                color = Color.White.copy(alpha = 0.3f),
+                                start = Offset(0f, 0f),
+                                end = Offset(0f, size.height),
+                                strokeWidth = strokeWidth,
+                                pathEffect = dashPathEffect
+                            )
+                        }
+
+                        // Right half
+                        Column(
+                            modifier = Modifier.weight(1f),
+                            horizontalAlignment = Alignment.CenterHorizontally
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.Center
+                            ) {
+                                Box(
+                                    modifier = Modifier
+                                        .size(48.dp)
+                                        .background(Color.White.copy(alpha = 0.15f), shape = CircleShape)
+                                        .border(1.5.dp, Color.White.copy(alpha = 0.4f), CircleShape),
+                                    contentAlignment = Alignment.Center
+                                ) {
+                                    Text(
+                                        text = "2x",
+                                        style = TextStyle(
+                                            color = Color.White,
+                                            fontSize = 16.sp,
+                                            fontWeight = FontWeight.Bold
+                                        )
+                                    )
+                                }
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Icon(
+                                    imageVector = Icons.Default.ChevronRight,
+                                    contentDescription = null,
+                                    tint = Color.White,
+                                    modifier = Modifier.size(28.dp)
+                                )
+                            }
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Text(
+                                text = "Διπλό Πάτημα\nΔεξιά",
+                                style = TextStyle(
+                                    color = Color.White,
+                                    fontSize = 15.sp,
+                                    fontWeight = FontWeight.Bold,
+                                    textAlign = TextAlign.Center
+                                )
+                            )
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Text(
+                                text = "Επόμενο\nανέκδοτο",
+                                style = TextStyle(
+                                    color = Color.White.copy(alpha = 0.6f),
+                                    fontSize = 12.sp,
+                                    textAlign = TextAlign.Center
+                                )
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(40.dp))
+
+                    Button(
+                        onClick = {
+                            settingsManager.showGestureOverlay = false
+                            showGestureTutorial = false
+                        },
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = Color(0xFF0F60A8),
+                            contentColor = Color.White
+                        ),
+                        shape = RoundedCornerShape(12.dp),
+                        contentPadding = PaddingValues(horizontal = 32.dp, vertical = 12.dp),
+                        modifier = Modifier.widthIn(min = 160.dp)
+                    ) {
+                        Text(
+                            text = "Κατάλαβα!",
+                            style = TextStyle(
+                                fontSize = 16.sp,
+                                fontWeight = FontWeight.Bold
+                            )
+                        )
                     }
                 }
             }

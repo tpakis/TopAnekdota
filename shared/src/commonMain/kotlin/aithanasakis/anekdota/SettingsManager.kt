@@ -6,6 +6,10 @@ class SettingsManager(private val storage: KeyValueStorage) {
         get() = storage.getInt("jokes_version", 1)
         set(value) = storage.putInt("jokes_version", value)
 
+    var showGestureOverlay: Boolean
+        get() = storage.getString("show_gesture_overlay_b", "true") == "true"
+        set(value) = storage.putString("show_gesture_overlay_b", value.toString())
+
     var fontSize: Int
         get() = storage.getInt("size", 16)
         set(value) = storage.putInt("size", value)
