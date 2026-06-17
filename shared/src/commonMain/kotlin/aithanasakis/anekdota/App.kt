@@ -306,9 +306,9 @@ fun App(context: Any? = null) {
                                     onShowSettings = { showSettingsDialog = true },
                                     onShowAbout = { showAboutDialog = true },
                                     onJokeLongPressed = { joke ->
+                                        val isFavorite = !joke.isFavorite
+                                        repository.toggleFavorite(joke, isFavorite)
                                         scope.launch {
-                                            val isFavorite = !joke.isFavorite
-                                            repository.toggleFavorite(joke, isFavorite)
                                             val msg = if (isFavorite) "Προστέθηκε στα αγαπημένα!" else "Αφαιρέθηκε από τα αγαπημένα!"
                                             snackbarHostState.showSnackbar(msg)
                                         }
@@ -927,25 +927,24 @@ fun CategoryListScreen(
     onShowAddJoke: () -> Unit,
     onShowSettings: () -> Unit,
     onShowAbout: () -> Unit,
-    onJokeLongPressed: (Joke) -> Unit
+    onJokeLongPressed: suspend (Joke) -> Unit
 ) {
+    val scope = rememberCoroutineScope()
     var rawJokes = remember { mutableStateListOf<Joke>() }
     var jokesList = remember { mutableStateListOf<Joke>() }
     var searchQuery by remember { mutableStateOf("") }
     var isSearching by remember { mutableStateOf(false) }
 
-    val reloadJokes = {
-        kotlinx.coroutines.MainScope().launch {
-            val dbJokes = repository.getJokes(categoryKey)
-            rawJokes.clear()
-            rawJokes.addAll(dbJokes)
-            
-            jokesList.clear()
-            if (searchQuery.isEmpty()) {
-                jokesList.addAll(dbJokes)
-            } else {
-                jokesList.addAll(dbJokes.filter { it.text.contains(searchQuery, ignoreCase = true) })
-            }
+    suspend fun reloadJokes() {
+        val dbJokes = repository.getJokes(categoryKey)
+        rawJokes.clear()
+        rawJokes.addAll(dbJokes)
+        
+        jokesList.clear()
+        if (searchQuery.isEmpty()) {
+            jokesList.addAll(dbJokes)
+        } else {
+            jokesList.addAll(dbJokes.filter { it.text.contains(searchQuery, ignoreCase = true) })
         }
     }
 
@@ -1109,9 +1108,10 @@ fun CategoryListScreen(
                                     .combinedClickable(
                                         onClick = { onSelectJoke(index) },
                                         onLongClick = { 
-                                            onJokeLongPressed(joke)
-                                            // Reload the lists to reflect changes immediately
-                                            reloadJokes()
+                                            scope.launch {
+                                                onJokeLongPressed(joke)
+                                                reloadJokes()
+                                            }
                                         }
                                     ),
                                 shape = RoundedCornerShape(12.dp),

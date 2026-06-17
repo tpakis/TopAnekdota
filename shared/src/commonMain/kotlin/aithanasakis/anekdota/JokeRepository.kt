@@ -66,10 +66,16 @@ class JokeRepository(private val database: JokeDatabase) {
     }
 
     suspend fun getJokes(category: String): List<Joke> {
+        if (category == "agapimena") {
+            return database.getFavorites()
+        }
         return database.getJokes(category)
     }
 
     suspend fun searchJokes(category: String, query: String): List<Joke> {
+        if (category == "agapimena") {
+            return database.getFavorites().filter { it.text.contains(query, ignoreCase = true) }
+        }
         return database.searchJokes(category, query)
     }
 
