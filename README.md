@@ -60,6 +60,22 @@ Learn more about [Kotlin Multiplatform](https://www.jetbrains.com/help/kotlin-mu
 We would appreciate your feedback on Compose/Web and Kotlin/Wasm in the public Slack channel [#compose-web](https://slack-chats.kotlinlang.org/c/compose-web).
 If you face any issues, please report them on [YouTrack](https://youtrack.jetbrains.com/newIssue?project=CMP).
 
+### Third-Party Fonts License Attribution
+
+The application includes several high-quality open-source fonts loaded as part of its visual layout options. All included fonts are free to use, modify, and distribute:
+
+- **Arimo** (Google Fonts) - Licensed under the [SIL Open Font License, Version 1.1](http://scripts.sil.org/OFL)
+- **Anonymous Pro** (by Mark Simonson) - Licensed under the [SIL Open Font License, Version 1.1](http://scripts.sil.org/OFL)
+- **Cardo** (by David J. Perry) - Licensed under the [SIL Open Font License, Version 1.1](http://scripts.sil.org/OFL)
+- **Comfortaa** (by Johan Aakerlund) - Licensed under the [SIL Open Font License, Version 1.1](http://scripts.sil.org/OFL)
+- **Jura** (by Daniel Johnson) - Licensed under the [SIL Open Font License, Version 1.1](http://scripts.sil.org/OFL)
+- **NovaMono** (by wmk69) - Licensed under the [SIL Open Font License, Version 1.1](http://scripts.sil.org/OFL)
+- **Play** (by Jonas Hecksher, Playtype) - Licensed under the [SIL Open Font License, Version 1.1](http://scripts.sil.org/OFL)
+- **Open Sans** (Google Fonts) - Licensed under the [Apache License, Version 2.0](http://www.apache.org/licenses/LICENSE-2.0)
+- **Ubuntu Mono** (by Canonical Ltd.) - Licensed under the [Ubuntu Font Licence 1.0](https://ubuntu.com/legal/font-licence)
+
+All licensing metadata remains fully intact and embedded inside the respective binary font resource files (`.ttf`) under [composeResources/font](./shared/src/commonMain/composeResources/font).
+
 ---
 
 ### License
